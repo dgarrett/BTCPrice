@@ -13,6 +13,7 @@
 		2C3F198116AB944C00BB17C9 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 2C3F197F16AB944C00BB17C9 /* Credits.rtf */; };
 		2C3F198416AB944C00BB17C9 /* DKGAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 2C3F198316AB944C00BB17C9 /* DKGAppDelegate.m */; };
 		2C3F198716AB944C00BB17C9 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 2C3F198516AB944C00BB17C9 /* MainMenu.xib */; };
+		2C6742BC16D9D37E00DFF1B1 /* BitCoinIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 2C6742BB16D9D37E00DFF1B1 /* BitCoinIcon.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 		2C3F198216AB944C00BB17C9 /* DKGAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DKGAppDelegate.h; sourceTree = "<group>"; };
 		2C3F198316AB944C00BB17C9 /* DKGAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DKGAppDelegate.m; sourceTree = "<group>"; };
 		2C3F198616AB944C00BB17C9 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		2C6742BB16D9D37E00DFF1B1 /* BitCoinIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = BitCoinIcon.icns; path = ../BitCoinIcon.icns; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,6 +84,7 @@
 		2C3F197616AB944C00BB17C9 /* BTCPrice */ = {
 			isa = PBXGroup;
 			children = (
+				2C6742BB16D9D37E00DFF1B1 /* BitCoinIcon.icns */,
 				2C3F198216AB944C00BB17C9 /* DKGAppDelegate.h */,
 				2C3F198316AB944C00BB17C9 /* DKGAppDelegate.m */,
 				2C3F198516AB944C00BB17C9 /* MainMenu.xib */,
@@ -157,6 +160,7 @@
 				2C3F197B16AB944C00BB17C9 /* InfoPlist.strings in Resources */,
 				2C3F198116AB944C00BB17C9 /* Credits.rtf in Resources */,
 				2C3F198716AB944C00BB17C9 /* MainMenu.xib in Resources */,
+				2C6742BC16D9D37E00DFF1B1 /* BitCoinIcon.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,10 +262,12 @@
 		2C3F198B16AB944C00BB17C9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "BTCPrice/BTCPrice-Prefix.pch";
 				INFOPLIST_FILE = "BTCPrice/BTCPrice-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -270,10 +276,12 @@
 		2C3F198C16AB944C00BB17C9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COMBINE_HIDPI_IMAGES = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "BTCPrice/BTCPrice-Prefix.pch";
 				INFOPLIST_FILE = "BTCPrice/BTCPrice-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -298,6 +306,7 @@
 				2C3F198C16AB944C00BB17C9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
