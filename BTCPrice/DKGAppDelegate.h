@@ -8,6 +8,12 @@
 
 #import <Cocoa/Cocoa.h>
 
+enum labelTypes {
+    kDataType = 0,
+    kBitcoinSymbol,
+    kNoLabel
+    };
+
 @interface DKGAppDelegate : NSObject <NSApplicationDelegate, NSMenuDelegate> {
     NSWindow *window;
     IBOutlet NSMenu *statusMenu;
@@ -16,8 +22,12 @@
     double updateInterval;
     
     int displayItem;
+    int displayDecimals;
+    enum labelTypes displayLabel;
     
     IBOutlet NSMenu* updateSubmenu;
+    IBOutlet NSMenu* decimalsSubmenu;
+    IBOutlet NSMenu* labelSubmenu;
 
 }
 
@@ -30,6 +40,8 @@
 - (IBAction)quit:(id)sender;
 - (void)changeUpdateTime:(id)sender;
 - (IBAction)donations:(id)sender;
+- (void)changeDisplayDecimals:(id)sender;
+- (void)changeDisplayLabel:(id)sender;
 
 
 @end
