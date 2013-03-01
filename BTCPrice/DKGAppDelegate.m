@@ -16,7 +16,27 @@
 #define kDefaultsDisplayDecimals    @"displayDecimals"
 #define kDefaultsDisplayLabel       @"displayLabel"
 
-@implementation DKGAppDelegate
+enum labelTypes {
+    kDataType = 0,
+    kBitcoinSymbol,
+    kNoLabel
+};
+
+
+@implementation DKGAppDelegate {
+    IBOutlet NSMenu *statusMenu;
+    NSStatusItem * statusItem;
+    NSTimer* updateTimer;
+    double updateInterval;
+    
+    int displayItem;
+    int displayDecimals;
+    enum labelTypes displayLabel;
+    
+    IBOutlet NSMenu* updateSubmenu;
+    IBOutlet NSMenu* decimalsSubmenu;
+    IBOutlet NSMenu* labelSubmenu;
+}
 
 
 // Each subarray is of the format { JSON key, Print name, value }
@@ -206,12 +226,13 @@ NSString* data[8][3] = {
 
 - (IBAction)donations:(id)sender {
     NSAlert *alert = [NSAlert alertWithMessageText:@"I'd greatly appreciate any donations."
-                                     defaultButton:@"Copy BTC Address"
-                                   alternateButton:@"Cancel :("
+                                     defaultButton:@"Copy Address"
+                                   alternateButton:@"Cancel"
                                        otherButton:nil
                          informativeTextWithFormat:kDonationAddr];
     
     long button = [alert runModal];
+    
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
     switch (button) {
         case NSAlertDefaultReturn:
