@@ -8,48 +8,52 @@
 
 #import "DKGAppDelegate.h"
 
-#define kBgQueue dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)
-#define kGoxURL [NSURL URLWithString:@"https://mtgox.com/code/data/ticker.php"]
-#define kDonationAddr @"1Price4EGW8R59auccATvEwCFAhXYBML6V"
+#define kDonationAddress            @"1Price4EGW8R59auccATvEwCFAhXYBML6V"
 #define kDefaultsDisplay            @"display"
+#define kDefaultsCurrency           @"currency"
 #define kDefaultsUpdateTime         @"updateTime"
 #define kDefaultsDisplayDecimals    @"displayDecimals"
 #define kDefaultsDisplayLabel       @"displayLabel"
 
-enum labelTypes {
+// Each subarray is of the format { JSON key, Print name, value }
+#define kKeyNamesCount (8)
+NSString* kKeyNames[kKeyNamesCount][2] = {
+    { @"high",  @"High" },
+    { @"low",   @"Low"  },
+    { @"avg",   @"Avg"  },
+    { @"vwap",  @"VWAP" },
+    { @"vol",   @"Vol"  },
+    { @"last",  @"Last" },
+    { @"buy",   @"Buy"  },
+    { @"sell",  @"Sell" }
+};
+
+typedef NS_ENUM(NSInteger, DKGLabelType) {
     kDataType = 0,
     kBitcoinSymbol,
     kNoLabel
 };
 
 
+@interface DKGAppDelegate ()
+@end
+
 @implementation DKGAppDelegate {
-    IBOutlet NSMenu *statusMenu;
-    NSStatusItem * statusItem;
-    NSTimer* updateTimer;
-    double updateInterval;
+    IBOutlet NSMenu* _statusMenu;
+    NSStatusItem* _statusItem;
+    NSTimer* _updateTimer;
+    double _updateInterval;
     
-    int displayItem;
-    int displayDecimals;
-    enum labelTypes displayLabel;
+    NSInteger _displayItem;
+    NSInteger _displayDecimals;
+    DKGLabelType _displayLabelType;
     
-    IBOutlet NSMenu* updateSubmenu;
-    IBOutlet NSMenu* decimalsSubmenu;
-    IBOutlet NSMenu* labelSubmenu;
+    IBOutlet NSMenu* _updateSubmenu;
+    IBOutlet NSMenu* _decimalsSubmenu;
+    IBOutlet NSMenu* _labelSubmenu;
+    IBOutlet NSMenu* _currencySubmenu;
 }
 
-
-// Each subarray is of the format { JSON key, Print name, value }
-NSString* data[8][3] = {
-    { @"high",  @"High",    @"" },
-    { @"low",   @"Low",     @"" },
-    { @"avg",   @"Avg",     @"" },
-    { @"vwap",  @"VWAP",    @"" },
-    { @"vol",   @"Vol",     @"" },
-    { @"last",  @"Last",    @"" },
-    { @"buy",   @"Buy",     @"" },
-    { @"sell",  @"Sell",    @"" }
-};
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
@@ -57,31 +61,39 @@ NSString* data[8][3] = {
 }
 
 -(void)awakeFromNib{
-    statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
-    [statusItem setMenu:statusMenu];
-    [statusItem setTitle:@"Loading..."];
-    [statusItem setHighlightMode:YES];
+    _statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
+    [_statusItem setMenu:_statusMenu];
+    [_statusItem setTitle:@"..."];
+    [_statusItem setHighlightMode:YES];
     
-    statusMenu.delegate = self;
+    _statusMenu.delegate = self;
     
     for (int i = 0; i < 8; i++) {
-        [statusMenu itemAtIndex:i].action = @selector(changeDisplay:);
+        [_statusMenu itemAtIndex:i].action = @selector(changeDisplay:);
+    }
+
+    for (int i = 0; i < _currencySubmenu.itemArray.count; i++) {
+        [_currencySubmenu itemAtIndex:i].action = @selector(changeCurrency:);
     }
     
-    for (int i = 0; i < updateSubmenu.itemArray.count; i++) {
-        [updateSubmenu itemAtIndex:i].action = @selector(changeUpdateTime:);
+    for (int i = 0; i < _updateSubmenu.itemArray.count; i++) {
+        [_updateSubmenu itemAtIndex:i].action = @selector(changeUpdateTime:);
     }
     
-    for (int i = 0; i < decimalsSubmenu.itemArray.count; i++) {
-        [decimalsSubmenu itemAtIndex:i].action = @selector(changeDisplayDecimals:);
+    for (int i = 0; i < _decimalsSubmenu.itemArray.count; i++) {
+        [_decimalsSubmenu itemAtIndex:i].action = @selector(changeDisplayDecimals:);
     }
     
-    for (int i = 0; i < labelSubmenu.itemArray.count; i++) {
-        [labelSubmenu itemAtIndex:i].action = @selector(changeDisplayLabel:);
+    for (int i = 0; i < _labelSubmenu.itemArray.count; i++) {
+        [_labelSubmenu itemAtIndex:i].action = @selector(changeDisplayLabel:);
     }
     
     if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsDisplay]) {
         [[NSUserDefaults standardUserDefaults] setInteger:2 forKey:kDefaultsDisplay];
+    }
+
+    if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsCurrency]) {
+        [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:kDefaultsCurrency];
     }
     
     if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsUpdateTime]) {
@@ -96,42 +108,57 @@ NSString* data[8][3] = {
         [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:kDefaultsDisplayLabel];
     }
     
-    [self changeDisplay:[statusMenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplay]]];
+    [self changeCurrency:[_currencySubmenu itemAtIndex:MAX(0, MIN([[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency], _currencySubmenu.itemArray.count - 1))]];
     
-    [self changeUpdateTime:[updateSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsUpdateTime]]];
+    [self changeDisplay:[_statusMenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplay]]];
     
-    [self changeDisplayDecimals:[decimalsSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayDecimals]]];
+    [self changeUpdateTime:[_updateSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsUpdateTime]]];
     
-    [self changeDisplayLabel:[labelSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayLabel]]];
+    [self changeDisplayDecimals:[_decimalsSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayDecimals]]];
     
+    [self changeDisplayLabel:[_labelSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayLabel]]];
+    
+    [self update];
 }
 
--(void)update {
+-(void)update
+{
     NSLog(@"Updating...");
-    dispatch_async(kBgQueue, ^{
-        NSData* data = [NSData dataWithContentsOfURL:
-                        kGoxURL];
-        [self performSelectorOnMainThread:@selector(fetchedData:)
-                               withObject:data waitUntilDone:YES];
+    NSString* currency = @"USD";
+    NSInteger i = [[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency];
+    i = MAX(0, MIN(i, _currencySubmenu.itemArray.count - 1));
+    currency = [[_currencySubmenu itemAtIndex:i] title];
+    NSURL* URL = [NSURL URLWithString:[NSString stringWithFormat:@"https://mtgox.com/api/1/BTC%@/ticker", currency]];
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSData* data = [NSData dataWithContentsOfURL:URL];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self updateWithData:data];
+        });
     });
 }
 
-- (void)fetchedData:(NSData *)responseData {
-    NSError* error;
-    if (responseData == nil) return;
+- (void) updateWithData:(NSData *)data
+{
+    NSError* error = nil;
     
-    NSDictionary* json = [NSJSONSerialization
-                          JSONObjectWithData:responseData
-                          options:kNilOptions
-                          error:&error];
-    id ticker = [json objectForKey:@"ticker"];
+    if (data == nil) return;
     
-    for (int i = 0; i < 8; i++) {
-        NSString* label;
-        switch (displayLabel) {
-            case kDataType:
-                label = [NSString stringWithFormat:@"%@: ", data[i][1]];
-                break;
+    NSDictionary* json = [NSJSONSerialization JSONObjectWithData:data options:nil error:&error];
+    
+    //NSLog(@"DEBUG: json = %@", json);
+    
+    if (![json[@"result"] isEqual:@"success"]) return;
+    
+    id ticker = json[@"return"];
+    
+    for (int i = 0; i < kKeyNamesCount; i++)
+    {
+        NSString* label = nil;
+        NSString* key = kKeyNames[i][0];
+        NSString* keyName = kKeyNames[i][1];
+        
+        switch (_displayLabelType)
+        {
             case kBitcoinSymbol:
                 label = @"฿ ";
                 break;
@@ -139,39 +166,50 @@ NSString* data[8][3] = {
                 label = @"";
                 break;
             default:
-                label = [NSString stringWithFormat:@"%@: ", data[i][1]];
+                label = [NSString stringWithFormat:@"%@: ", keyName];
                 break;
         }
-        data[i][2] = [NSString stringWithFormat:@"%@", [ticker objectForKey:data[i][0]]];
-        NSString* menuString = data[i][2];
+        
+        NSString* valueString = ticker[key][@"value"];
         
         // Decimals
-        NSRange decimalLocation = [data[i][2] rangeOfString:@"."];
-        if (decimalLocation.location != NSNotFound && displayDecimals < data[i][2].length - decimalLocation.location) {
-            menuString = [menuString substringToIndex:(decimalLocation.location + (displayDecimals > 0 ? displayDecimals + 1 : 0))];
+        NSRange decimalLocation = [valueString rangeOfString:@"."];
+        if (decimalLocation.location != NSNotFound && _displayDecimals < valueString.length - decimalLocation.location) {
+            valueString = [valueString substringToIndex:(decimalLocation.location + (_displayDecimals > 0 ? _displayDecimals + 1 : 0))];
         }
         
-        [[statusMenu itemAtIndex:i] setTitle:[NSString stringWithFormat:@"%@:  \t%@", data[i][1], data[i][2]]];
+        [[_statusMenu itemAtIndex:i] setTitle:[NSString stringWithFormat:@"%@:  \t%@", keyName, valueString]];
         
-        if (displayItem == i) {
-            [statusItem setTitle:[NSString stringWithFormat:@"%@%@", label, menuString]];
+        if (_displayItem == i) {
+            [_statusItem setTitle:[NSString stringWithFormat:@"%@%@", label, valueString]];
         }
     }
-    
-    
 }
 
-- (void)changeDisplay:(id)sender {
-    int item = (int)[[statusMenu itemArray] indexOfObject:sender];
-    NSLog(@"index: %lu", (unsigned long)[[statusMenu itemArray] indexOfObject:sender]);
+- (void)changeDisplay:(id)sender
+{
+    int item = (int)[[_statusMenu itemArray] indexOfObject:sender];
+    NSLog(@"Display mode: %lu", (unsigned long)[[_statusMenu itemArray] indexOfObject:sender]);
     
-    for (int i = 0; i < statusMenu.itemArray.count; i++) {
-        [statusMenu itemAtIndex:i].state = NSOffState;
+    for (int i = 0; i < _statusMenu.itemArray.count; i++) {
+        [_statusMenu itemAtIndex:i].state = NSOffState;
     }
     [sender setState:NSOnState];
     
-    displayItem = item;
-    [[NSUserDefaults standardUserDefaults] setInteger:[statusMenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplay];
+    _displayItem = item;
+    [[NSUserDefaults standardUserDefaults] setInteger:[_statusMenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplay];
+    [self update];
+}
+
+- (void) changeCurrency:(NSMenuItem*)sender
+{
+    NSLog(@"Currency: %@", [sender title]);
+    for (int i = 0; i < _currencySubmenu.itemArray.count; i++) {
+        [_currencySubmenu itemAtIndex:i].state = NSOffState;
+    }
+    [sender setState:NSOnState];
+    
+    [[NSUserDefaults standardUserDefaults] setInteger:[_currencySubmenu.itemArray indexOfObject:sender] forKey:kDefaultsCurrency];
     [self update];
 }
 
@@ -185,39 +223,47 @@ NSString* data[8][3] = {
 }
 
 - (void)changeUpdateTime:(id)sender {
-    NSLog(@"%@", [sender title]);
-    for (int i = 0; i < updateSubmenu.itemArray.count; i++) {
-        [updateSubmenu itemAtIndex:i].state = NSOffState;
+    NSLog(@"Update time: %@", [sender title]);
+    for (int i = 0; i < _updateSubmenu.itemArray.count; i++) {
+        [_updateSubmenu itemAtIndex:i].state = NSOffState;
     }
     [sender setState:NSOnState];
     
-    [[NSUserDefaults standardUserDefaults] setInteger:[updateSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsUpdateTime];
+    [[NSUserDefaults standardUserDefaults] setInteger:[_updateSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsUpdateTime];
     
     if ([@"10s" isEqual:[sender title]]) {
-        updateInterval = 10.0;
+        _updateInterval = 10.0;
     }
     if ([@"30s" isEqual:[sender title]]) {
-        updateInterval = 30.0;
+        _updateInterval = 30.0;
     }
     if ([@"1min" isEqual:[sender title]]) {
-        updateInterval = 60.0;
+        _updateInterval = 60.0;
     }
     if ([@"10min" isEqual:[sender title]]) {
-        updateInterval = 10*60.0;
+        _updateInterval = 10*60.0;
     }
     if ([@"30min" isEqual:[sender title]]) {
-        updateInterval = 30*60.0;
+        _updateInterval = 30*60.0;
     }
     if ([@"1hr" isEqual:[sender title]]) {
-        updateInterval = 60*60.0;
+        _updateInterval = 60*60.0;
     }
-    NSLog(@"interval: %lf", updateInterval);
-    [updateTimer invalidate];
-    updateTimer = [NSTimer scheduledTimerWithTimeInterval:updateInterval
-                                                   target:self
-                                                 selector:@selector(update)
-                                                 userInfo:nil
-                                                  repeats:YES];
+    
+    if (_updateInterval < 10.0) _updateInterval = 10.0;
+    
+    NSLog(@"interval: %lf", _updateInterval);
+    [self restartTimer];
+}
+
+- (void) restartTimer
+{
+    [_updateTimer invalidate];
+    _updateTimer = [NSTimer scheduledTimerWithTimeInterval:_updateInterval
+                                                    target:self
+                                                  selector:@selector(update)
+                                                  userInfo:nil
+                                                   repeats:YES];
 }
 
 - (void)menuWillOpen:(NSMenu *)menu {
@@ -229,7 +275,7 @@ NSString* data[8][3] = {
                                      defaultButton:@"Copy Address"
                                    alternateButton:@"Cancel"
                                        otherButton:nil
-                         informativeTextWithFormat:kDonationAddr];
+                         informativeTextWithFormat:kDonationAddress];
     
     long button = [alert runModal];
     
@@ -238,7 +284,7 @@ NSString* data[8][3] = {
         case NSAlertDefaultReturn:
             NSLog(@"copy");
             [pasteboard clearContents];
-            [pasteboard writeObjects:[NSArray arrayWithObject:kDonationAddr]];
+            [pasteboard writeObjects:[NSArray arrayWithObject:kDonationAddress]];
             break;
         case NSAlertAlternateReturn:
             NSLog(@"Don't copy");
@@ -250,27 +296,27 @@ NSString* data[8][3] = {
 }
 
 - (void)changeDisplayDecimals:(id)sender {
-    for (int i = 0; i < decimalsSubmenu.itemArray.count; i++) {
-        [decimalsSubmenu itemAtIndex:i].state = NSOffState;
+    for (int i = 0; i < _decimalsSubmenu.itemArray.count; i++) {
+        [_decimalsSubmenu itemAtIndex:i].state = NSOffState;
     }
     [sender setState:NSOnState];
     
-    [[NSUserDefaults standardUserDefaults] setInteger:[decimalsSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplayDecimals];
+    [[NSUserDefaults standardUserDefaults] setInteger:[_decimalsSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplayDecimals];
     
-    displayDecimals = [decimalsSubmenu.itemArray indexOfObject:sender];
+    _displayDecimals = [_decimalsSubmenu.itemArray indexOfObject:sender];
     
     [self update];
 }
 
 - (void)changeDisplayLabel:(id)sender {
-    for (int i = 0; i < labelSubmenu.itemArray.count; i++) {
-        [labelSubmenu itemAtIndex:i].state = NSOffState;
+    for (int i = 0; i < _labelSubmenu.itemArray.count; i++) {
+        [_labelSubmenu itemAtIndex:i].state = NSOffState;
     }
     [sender setState:NSOnState];
     
-    [[NSUserDefaults standardUserDefaults] setInteger:[labelSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplayLabel];
+    [[NSUserDefaults standardUserDefaults] setInteger:[_labelSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplayLabel];
     
-    displayLabel = [labelSubmenu.itemArray indexOfObject:sender];
+    _displayLabelType = [_labelSubmenu.itemArray indexOfObject:sender];
     
     [self update];
 }
