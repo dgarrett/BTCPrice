@@ -14,8 +14,9 @@
 #define kDefaultsUpdateTime         @"updateTime"
 #define kDefaultsDisplayDecimals    @"displayDecimals"
 #define kDefaultsDisplayLabel       @"displayLabel"
+#define kDefaultsFontSize           @"fontSize"
 
-// Each subarray is of the format { JSON key, Print name, value }
+// Each subarray is of the format { JSON key, Print name }
 #define kKeyNamesCount (8)
 NSString* kKeyNames[kKeyNamesCount][2] = {
     { @"high",  @"High" },
@@ -47,11 +48,13 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     NSInteger _displayItem;
     NSInteger _displayDecimals;
     DKGLabelType _displayLabelType;
+    double _displayFontSize;
     
     IBOutlet NSMenu* _updateSubmenu;
     IBOutlet NSMenu* _decimalsSubmenu;
     IBOutlet NSMenu* _labelSubmenu;
     IBOutlet NSMenu* _currencySubmenu;
+    IBOutlet NSMenu* _fontSizeSubmenu;
 }
 
 
@@ -88,8 +91,12 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         [_labelSubmenu itemAtIndex:i].action = @selector(changeDisplayLabel:);
     }
     
+    for (int i = 0; i < _fontSizeSubmenu.itemArray.count; i++) {
+        [_fontSizeSubmenu itemAtIndex:i].action = @selector(changeFontSize:);
+    }
+    
     if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsDisplay]) {
-        [[NSUserDefaults standardUserDefaults] setInteger:2 forKey:kDefaultsDisplay];
+        [[NSUserDefaults standardUserDefaults] setInteger:5 forKey:kDefaultsDisplay];
     }
 
     if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsCurrency]) {
@@ -108,6 +115,11 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:kDefaultsDisplayLabel];
     }
     
+    if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsFontSize]
+        || nil == [_fontSizeSubmenu itemWithTitle:[[NSUserDefaults standardUserDefaults] stringForKey:kDefaultsFontSize]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:@"14 (Default)" forKey:kDefaultsFontSize];
+    }
+    
     [self changeCurrency:[_currencySubmenu itemAtIndex:MAX(0, MIN([[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency], _currencySubmenu.itemArray.count - 1))]];
     
     [self changeDisplay:[_statusMenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplay]]];
@@ -117,6 +129,8 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     [self changeDisplayDecimals:[_decimalsSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayDecimals]]];
     
     [self changeDisplayLabel:[_labelSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayLabel]]];
+    
+    [self changeFontSize:[_fontSizeSubmenu itemWithTitle:[[NSUserDefaults standardUserDefaults] stringForKey:kDefaultsFontSize]]];
     
     [self update];
 }
@@ -144,8 +158,6 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     if (data == nil) return;
     
     NSDictionary* json = [NSJSONSerialization JSONObjectWithData:data options:nil error:&error];
-    
-    //NSLog(@"DEBUG: json = %@", json);
     
     if (![json[@"result"] isEqual:@"success"]) return;
     
@@ -181,7 +193,12 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         [[_statusMenu itemAtIndex:i] setTitle:[NSString stringWithFormat:@"%@:  \t%@", keyName, valueString]];
         
         if (_displayItem == i) {
-            [_statusItem setTitle:[NSString stringWithFormat:@"%@%@", label, valueString]];
+            NSDictionary *attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+                                        [NSFont systemFontOfSize: _displayFontSize], NSFontAttributeName, nil];
+            NSMutableAttributedString* s = [[NSMutableAttributedString alloc]
+                                            initWithString:[NSString stringWithFormat:@"%@%@", label, valueString]
+                                            attributes:attributes];
+            [_statusItem setAttributedTitle:s];
         }
     }
 }
@@ -317,6 +334,19 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     [[NSUserDefaults standardUserDefaults] setInteger:[_labelSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplayLabel];
     
     _displayLabelType = [_labelSubmenu.itemArray indexOfObject:sender];
+    
+    [self update];
+}
+
+- (void)changeFontSize:(id)sender {
+    for (int i = 0; i < _fontSizeSubmenu.itemArray.count; i++) {
+        [_fontSizeSubmenu itemAtIndex:i].state = NSOffState;
+    }
+    [sender setState:NSOnState];
+    
+    [[NSUserDefaults standardUserDefaults] setObject:[sender title] forKey:kDefaultsFontSize];
+    
+    _displayFontSize = [[sender title] doubleValue];
     
     [self update];
 }
