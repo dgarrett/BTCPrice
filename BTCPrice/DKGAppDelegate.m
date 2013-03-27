@@ -16,17 +16,64 @@
 #define kDefaultsDisplayLabel       @"displayLabel"
 #define kDefaultsFontSize           @"fontSize"
 
+#define EXCHANGE					BTCentral //see enum for available options:
+
+/* To add support for an exchange, update:
+ - the enum
+ - the kKeyNamesCount array
+ - the kKeyNames array
+ - getURLByCurrency method
+ 
+*/
+
+const typedef enum {
+    MTGox,
+    BTCentral
+} Exchange;
+
+#define EXCHANGECOUNT               2
+
+int kKeyNamesCount[EXCHANGECOUNT] = {8, 8};
+
+#define MAXCOUNT                    8
+
 // Each subarray is of the format { JSON key, Print name }
-#define kKeyNamesCount (8)
-NSString* kKeyNames[kKeyNamesCount][2] = {
-    { @"high",  @"High" },
-    { @"low",   @"Low"  },
-    { @"avg",   @"Avg"  },
-    { @"vwap",  @"VWAP" },
-    { @"vol",   @"Vol"  },
-    { @"last",  @"Last" },
-    { @"buy",   @"Buy"  },
-    { @"sell",  @"Sell" }
+NSString* kKeyNames[EXCHANGECOUNT][MAXCOUNT][2] = {
+    { //MTGOX
+        { @"high",  @"High" },
+        { @"low",   @"Low"  },
+        { @"avg",   @"Avg"  },
+        { @"vwap",  @"VWAP" },
+        { @"vol",   @"Vol"  },
+        { @"last",  @"Last" },
+        { @"buy",   @"Buy"  },
+        { @"sell",  @"Sell" }
+    },
+    { //BTCentral
+        { @"high",  @"High" },
+        { @"low",   @"Low"  },
+        { @"midpoint",   @"Mid"  },
+        { @"variation",  @"Var" },
+        { @"volume",   @"Vol"  },
+        { @"price",  @"Last" },
+        { @"bid",   @"Bid"  },
+        { @"ask",  @"Ask" }
+    }
+};
+
+const typedef enum {
+    USD, EUR, JPY, CAD, GBP, CHF, RUB, AUD
+} Currency;
+
+#define MAXCURRENCIES                    8
+
+Currency* currencies[EXCHANGECOUNT][MAXCURRENCIES] = {
+    { //MTGOX
+        USD, EUR, JPY, CAD, GBP, CHF, RUB, AUD
+    },
+    { //BTCentral
+        EUR
+    }
 };
 
 typedef NS_ENUM(NSInteger, DKGLabelType) {
@@ -40,6 +87,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
 @end
 
 @implementation DKGAppDelegate {
+    
     IBOutlet NSMenu* _statusMenu;
     NSStatusItem* _statusItem;
     NSTimer* _updateTimer;
@@ -142,16 +190,37 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     NSInteger i = [[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency];
     i = MAX(0, MIN(i, _currencySubmenu.itemArray.count - 1));
     currency = [[_currencySubmenu itemAtIndex:i] title];
-    NSURL* URL = [NSURL URLWithString:[NSString stringWithFormat:@"https://mtgox.com/api/1/BTC%@/ticker", currency]];
+	NSURL* URL = [NSURL URLWithString:[self getURLByCurrency:currency]];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSData* data = [NSData dataWithContentsOfURL:URL];
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self updateWithData:data];
+				[self updateData:data];
         });
     });
 }
 
-- (void) updateWithData:(NSData *)data
+- (NSString*) getURLByCurrency:(NSString *)currency
+{
+    switch (EXCHANGE) {
+        case BTCentral :
+            return [NSString stringWithFormat:@"https://bitcoin-central.net/api/v1/ticker/%@", currency];
+        case MTGox :
+            return [NSString stringWithFormat:@"https://mtgox.com/api/1/BTC%@/ticker", currency];
+    }
+    //Room for more exchanges here
+}
+
+- (NSString *) parseData:(NSDictionary*)json byKey:(NSString*)key
+{
+    switch (EXCHANGE) {
+        case BTCentral :
+            return [json[key] stringValue];
+        case MTGox :
+            return json[@"return"][key][@"value"];
+    }
+}
+
+- (void) updateData:(NSData *)data
 {
     NSError* error = nil;
     
@@ -159,15 +228,11 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     
     NSDictionary* json = [NSJSONSerialization JSONObjectWithData:data options:nil error:&error];
     
-    if (![json[@"result"] isEqual:@"success"]) return;
-    
-    id ticker = json[@"return"];
-    
-    for (int i = 0; i < kKeyNamesCount; i++)
+    for (int i = 0; i < kKeyNamesCount[EXCHANGE]; i++)
     {
         NSString* label = nil;
-        NSString* key = kKeyNames[i][0];
-        NSString* keyName = kKeyNames[i][1];
+        NSString* key = kKeyNames[EXCHANGE][i][0];
+        NSString* keyName = kKeyNames[EXCHANGE][i][1];
         
         switch (_displayLabelType)
         {
@@ -182,7 +247,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
                 break;
         }
         
-        NSString* valueString = ticker[key][@"value"];
+        NSString* valueString = [self parseData:json byKey: key];
         
         // Decimals
         NSRange decimalLocation = [valueString rangeOfString:@"."];
@@ -350,5 +415,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     
     [self update];
 }
+                                     
+                                     
 
 @end
