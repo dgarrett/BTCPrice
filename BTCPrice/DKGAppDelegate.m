@@ -14,6 +14,7 @@
 #define kDefaultsExchange           @"exchange"
 #define kDefaultsUpdateTime         @"updateTime"
 #define kDefaultsDisplayDecimals    @"displayDecimals"
+#define kDefaultsTrailingZeros      @"trailingZeros"
 #define kDefaultsDisplayLabel       @"displayLabel"
 #define kDefaultsFontSize           @"fontSize"
 
@@ -108,6 +109,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     
     NSInteger _displayItem;
     NSInteger _displayDecimals;
+    BOOL _trailingZeros;
     NSInteger _displayExchange;
     DKGLabelType _displayLabelType;
     double _displayFontSize;
@@ -183,6 +185,10 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         [[NSUserDefaults standardUserDefaults] setInteger:3 forKey:kDefaultsDisplayDecimals];
     }
     
+    if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsTrailingZeros]) {
+        [[NSUserDefaults standardUserDefaults] setBool:false forKey:kDefaultsTrailingZeros];
+    }
+    
     if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsDisplayLabel]) {
         [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:kDefaultsDisplayLabel];
     }
@@ -203,6 +209,11 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     [self changeUpdateTime:[_updateSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsUpdateTime]]];
     
     [self changeDisplayDecimals:[_decimalsSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayDecimals]]];
+    
+    //UI defaults to disabled, so if kDefaultsTrailingZeros is set, we need to toggle once to the onState
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:kDefaultsTrailingZeros]) {
+        [self changeDisplayDecimals:[_decimalsSubmenu itemAtIndex:_decimalsSubmenu.itemArray.count-1]];
+    }
     
     [self changeDisplayLabel:[_labelSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplayLabel]]];
     
@@ -280,10 +291,20 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         
         NSString* valueString = [self parseData:json byKey: key];
         
+        NSLog(@"Displaying trailing zeros: %d", _trailingZeros);
+        
+
         // Decimals
-        NSRange decimalLocation = [valueString rangeOfString:@"."];
-        if (decimalLocation.location != NSNotFound && _displayDecimals < valueString.length - decimalLocation.location) {
-            valueString = [valueString substringToIndex:(decimalLocation.location + (_displayDecimals > 0 ? _displayDecimals + 1 : 0))];
+        double valueDouble = [valueString doubleValue];
+        valueString = [NSString stringWithFormat:[NSString stringWithFormat:@"%%.%ldf", _displayDecimals], valueDouble];
+        if (!_trailingZeros) {
+            int index = (int)[valueString length] - 1;
+            while ([valueString characterAtIndex:index] == '0' && index > 0) {
+                index--;
+            }
+            if ([valueString characterAtIndex:index] == '.')
+                index--;
+            valueString = [valueString substringToIndex: index +1];
         }
         
         [[_statusMenu itemAtIndex:i] setTitle:[NSString stringWithFormat:@"%@:  \t%@", keyName, valueString]];
@@ -414,15 +435,21 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
 }
 
 - (void)changeDisplayDecimals:(id)sender {
-    for (int i = 0; i < _decimalsSubmenu.itemArray.count; i++) {
-        [_decimalsSubmenu itemAtIndex:i].state = NSOffState;
+    if ([_decimalsSubmenu.itemArray indexOfObject:sender] == _decimalsSubmenu.itemArray.count - 1) {
+        [sender setState: ([sender state] == NSOnState ? NSOffState : NSOnState)];
+        [[NSUserDefaults standardUserDefaults] setBool:[sender state] == NSOnState forKey:kDefaultsTrailingZeros];
+        _trailingZeros = [sender state] == NSOnState;
     }
-    [sender setState:NSOnState];
-    
-    [[NSUserDefaults standardUserDefaults] setInteger:[_decimalsSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplayDecimals];
-    
-    _displayDecimals = [_decimalsSubmenu.itemArray indexOfObject:sender];
-    
+    else {
+        for (int i = 0; i < _decimalsSubmenu.itemArray.count - 1; i++) {//-1 to prevent affecting 'trailing zeros'
+            [_decimalsSubmenu itemAtIndex:i].state = NSOffState;
+        }
+        [sender setState:NSOnState];
+        
+        [[NSUserDefaults standardUserDefaults] setInteger:[_decimalsSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsDisplayDecimals];
+        
+        _displayDecimals = [_decimalsSubmenu.itemArray indexOfObject:sender];
+    }
     [self update];
 }
 
