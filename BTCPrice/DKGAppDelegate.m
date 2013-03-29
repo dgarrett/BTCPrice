@@ -21,7 +21,6 @@
 /* To add support for an exchange, update:
  - the Exchange enum
  - the EXCHANGECOUNT constant
- - the kKeyNamesCount array
  - the kKeyNames array
  - the currencies array
  - getURLByCurrency method
@@ -32,18 +31,16 @@
 const typedef enum {
     MTGox,
     BitStamp,
-    BTCentral
+    BTCentral,
+    Bitcoin24
 } Exchange;
 
-#define EXCHANGECOUNT               3
-
-int kKeyNamesCount[EXCHANGECOUNT] = {8, 8, 8};
-
-#define MAXCOUNT                    8
+#define EXCHANGECOUNT               4
+#define KEYCOUNT                    8
 
 // Each subarray is of the format { JSON key, Print name }
 // use a NULL key to gracefully indicate a value is missing
-NSString* kKeyNames[EXCHANGECOUNT][MAXCOUNT][2] = {
+NSString* kKeyNames[EXCHANGECOUNT][KEYCOUNT][2] = {
     { //MTGOX
         { @"high",  @"High" },
         { @"low",   @"Low"  },
@@ -55,24 +52,34 @@ NSString* kKeyNames[EXCHANGECOUNT][MAXCOUNT][2] = {
         { @"sell",  @"Sell" }
     },
     { //Bitstamp
-        { @"high",  @"High" },
-        { @"low",   @"Low"  },
-        { @"NULL",   @"Avg"  },
-        { @"NULL",  @"VWAP" },
-        { @"volume",   @"Vol"  },
-        { @"last",  @"Last" },
-        { @"bid",   @"Bid"  },
-        { @"ask",  @"Ask" }
+        { @"high",      @"High" },
+        { @"low",       @"Low"  },
+        { @"NULL",      @"Avg"  },
+        { @"NULL",      @"VWAP" },
+        { @"volume",    @"Vol"  },
+        { @"last",      @"Last" },
+        { @"bid",       @"Bid"  },
+        { @"ask",       @"Ask"  }
     },
     { //BTCentral
-        { @"high",  @"High" },
-        { @"low",   @"Low"  },
-        { @"midpoint",   @"Mid"  },
-        { @"variation",  @"Var" },
-        { @"volume",   @"Vol"  },
-        { @"price",  @"Last" },
-        { @"bid",   @"Bid"  },
-        { @"ask",  @"Ask" }
+        { @"high",      @"High" },
+        { @"low",       @"Low"  },
+        { @"midpoint",  @"Mid"  },
+        { @"variation", @"Var"  },
+        { @"volume",    @"Vol"  },
+        { @"price",     @"Price" },
+        { @"bid",       @"Bid"  },
+        { @"ask",       @"Ask"  }
+    },
+    { //Bitcoin24
+        { @"high",      @"High" },
+        { @"low",       @"Low"  },
+        { @"avg",       @"Avg"  },
+        { @"NULL",      @"Var"  },
+        { @"trades_today", @"# Today" },
+        { @"last",      @"Last" },
+        { @"bid",       @"Bid"  },
+        { @"ask",       @"Ask"  }
     }
 };
 
@@ -105,6 +112,17 @@ BOOL* kCurrencies[EXCHANGECOUNT][CURRENCIES] = {
     },
     { //BTCentral
         false, //USD
+        true, //EUR
+        false, //JPY
+        false, //CAD
+        false, //GBP
+        false, //CHF
+        false, //RUB
+        false  //AUD
+    }
+    ,
+    { //Bitcoin24
+        true, //USD
         true, //EUR
         false, //JPY
         false, //CAD
@@ -253,7 +271,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     NSString* currency = @"USD";
     NSInteger i = [[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency];
     i = MAX(0, MIN(i, _currencySubmenu.itemArray.count - 1));
-    currency = [[_currencySubmenu itemAtIndex:i] title];
+    currency = [[[_currencySubmenu itemAtIndex:i] title] uppercaseString];
 	NSURL* URL = [NSURL URLWithString:[self getURLByCurrency:currency]];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSData* data = [NSData dataWithContentsOfURL:URL];
@@ -270,6 +288,8 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
             return [NSString stringWithFormat:@"https://bitcoin-central.net/api/v1/ticker/%@", currency];
         case BitStamp:
             return [NSString stringWithFormat:@"https://www.bitstamp.net/api/ticker/"];
+        case Bitcoin24:
+            return [NSString stringWithFormat:@"https://bitcoin-24.com/api/%@/ticker.json", currency];
         //Room for more exchanges here
         case MTGox :
         default :
@@ -283,6 +303,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         case BTCentral :
             return [json[key] stringValue];
         case BitStamp:
+        case Bitcoin24:
             return json[key];
         //Room for more exchanges here
         case MTGox :
@@ -299,7 +320,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     
     NSDictionary* json = [NSJSONSerialization JSONObjectWithData:data options:nil error:&error];
     
-    for (int i = 0; i < kKeyNamesCount[_displayExchange]; i++)
+    for (int i = 0; i < KEYCOUNT; i++)
     {
         NSString* label = nil;
         NSString* valueString = nil;
