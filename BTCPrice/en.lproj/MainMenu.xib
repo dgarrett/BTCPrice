@@ -1389,7 +1389,7 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
-								<object class="NSMenuItem" id="676417164">
+								<object class="NSMenuItem" id="755281643">
 									<reference key="NSMenu" ref="410569753"/>
 									<string key="NSTitle">Bitstamp</string>
 									<string key="NSKeyEquiv"/>
@@ -1405,9 +1405,17 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
-								<object class="NSMenuItem" id="616333347">
+								<object class="NSMenuItem" id="856458171">
 									<reference key="NSMenu" ref="410569753"/>
 									<string key="NSTitle">Bitcoin-24</string>
+									<string key="NSKeyEquiv"/>
+									<int key="NSMnemonicLoc">2147483647</int>
+									<reference key="NSOnImage" ref="35465992"/>
+									<reference key="NSMixedImage" ref="502551668"/>
+								</object>
+								<object class="NSMenuItem" id="771610152">
+									<reference key="NSMenu" ref="410569753"/>
+									<string key="NSTitle">BTC-e</string>
 									<string key="NSKeyEquiv"/>
 									<int key="NSMnemonicLoc">2147483647</int>
 									<reference key="NSOnImage" ref="35465992"/>
@@ -1647,7 +1655,7 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
-								<object class="NSMenuItem" id="877404099">
+								<object class="NSMenuItem" id="273234746">
 									<reference key="NSMenu" ref="506593699"/>
 									<bool key="NSIsDisabled">YES</bool>
 									<bool key="NSIsSeparator">YES</bool>
@@ -1657,7 +1665,7 @@
 									<reference key="NSOnImage" ref="35465992"/>
 									<reference key="NSMixedImage" ref="502551668"/>
 								</object>
-								<object class="NSMenuItem" id="388823486">
+								<object class="NSMenuItem" id="561621483">
 									<reference key="NSMenu" ref="506593699"/>
 									<string key="NSTitle">Trailing zeros</string>
 									<string key="NSKeyEquiv"/>
@@ -3752,8 +3760,8 @@
 							<reference ref="692998926"/>
 							<reference ref="836734002"/>
 							<reference ref="164713348"/>
-							<reference ref="388823486"/>
-							<reference ref="877404099"/>
+							<reference ref="561621483"/>
+							<reference ref="273234746"/>
 						</array>
 						<reference key="parent" ref="588294412"/>
 					</object>
@@ -3963,8 +3971,9 @@
 						<array class="NSMutableArray" key="children">
 							<reference ref="548771334"/>
 							<reference ref="773562801"/>
-							<reference ref="676417164"/>
-							<reference ref="616333347"/>
+							<reference ref="755281643"/>
+							<reference ref="856458171"/>
+							<reference ref="771610152"/>
 						</array>
 						<reference key="parent" ref="285487643"/>
 					</object>
@@ -3980,22 +3989,27 @@
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">620</int>
-						<reference key="object" ref="388823486"/>
+						<reference key="object" ref="561621483"/>
 						<reference key="parent" ref="506593699"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">621</int>
-						<reference key="object" ref="877404099"/>
+						<reference key="object" ref="273234746"/>
 						<reference key="parent" ref="506593699"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">624</int>
-						<reference key="object" ref="676417164"/>
+						<reference key="object" ref="755281643"/>
 						<reference key="parent" ref="410569753"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">626</int>
-						<reference key="object" ref="616333347"/>
+						<reference key="object" ref="856458171"/>
+						<reference key="parent" ref="410569753"/>
+					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">627</int>
+						<reference key="object" ref="771610152"/>
 						<reference key="parent" ref="410569753"/>
 					</object>
 				</array>
@@ -4208,6 +4222,7 @@
 				<string key="621.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="624.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="626.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
+				<string key="627.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="72.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="73.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="74.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -4224,7 +4239,7 @@
 			<nil key="activeLocalization"/>
 			<dictionary class="NSMutableDictionary" key="localizations"/>
 			<nil key="sourceID"/>
-			<int key="maxID">626</int>
+			<int key="maxID">627</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<array class="NSMutableArray" key="referencedPartialClassDescriptions">

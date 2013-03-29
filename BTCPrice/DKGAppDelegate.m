@@ -32,10 +32,11 @@ const typedef enum {
     MTGox,
     BitStamp,
     BTCentral,
-    Bitcoin24
+    Bitcoin24,
+    BTCe
 } Exchange;
 
-#define EXCHANGECOUNT               4
+#define EXCHANGECOUNT               5
 #define KEYCOUNT                    8
 
 // Each subarray is of the format { JSON key, Print name }
@@ -80,7 +81,18 @@ NSString* kKeyNames[EXCHANGECOUNT][KEYCOUNT][2] = {
         { @"last",      @"Last" },
         { @"bid",       @"Bid"  },
         { @"ask",       @"Ask"  }
+    },
+    { //BTC-e
+        { @"high",      @"High" },
+        { @"low",       @"Low"  },
+        { @"avg",       @"Avg"  },
+        { @"NULL",      @"Var"  },
+        { @"vol_cur",   @"Vol"  },
+        { @"last",      @"Last" },
+        { @"buy",       @"Buy"  },
+        { @"sell",      @"Sell" }
     }
+    
 };
 
 const typedef enum {
@@ -119,9 +131,18 @@ BOOL* kCurrencies[EXCHANGECOUNT][CURRENCIES] = {
         false, //CHF
         false, //RUB
         false  //AUD
-    }
-    ,
+    },
     { //Bitcoin24
+        true, //USD
+        true, //EUR
+        false, //JPY
+        false, //CAD
+        false, //GBP
+        false, //CHF
+        false, //RUB
+        false  //AUD
+    },
+    { //BTC-e
         true, //USD
         true, //EUR
         false, //JPY
@@ -290,6 +311,8 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
             return [NSString stringWithFormat:@"https://www.bitstamp.net/api/ticker/"];
         case Bitcoin24:
             return [NSString stringWithFormat:@"https://bitcoin-24.com/api/%@/ticker.json", currency];
+        case BTCe:
+            return [NSString stringWithFormat:@"https://btc-e.com/api/2/btc_%@/ticker",[currency lowercaseString]];
         //Room for more exchanges here
         case MTGox :
         default :
@@ -305,6 +328,8 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         case BitStamp:
         case Bitcoin24:
             return json[key];
+        case BTCe:
+            return [json[@"ticker"][key] stringValue];
         //Room for more exchanges here
         case MTGox :
         default:
