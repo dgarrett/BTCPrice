@@ -11,19 +11,18 @@
 #define kDonationAddress            @"1Price4EGW8R59auccATvEwCFAhXYBML6V"
 #define kDefaultsDisplay            @"display"
 #define kDefaultsCurrency           @"currency"
+#define kDefaultsExchange           @"exchange"
 #define kDefaultsUpdateTime         @"updateTime"
 #define kDefaultsDisplayDecimals    @"displayDecimals"
 #define kDefaultsDisplayLabel       @"displayLabel"
 #define kDefaultsFontSize           @"fontSize"
 
-#define EXCHANGE					BTCentral //see enum for available options:
-
 /* To add support for an exchange, update:
- - the enum
+ - the Exchange enum
  - the kKeyNamesCount array
  - the kKeyNames array
+ - the currencies array
  - getURLByCurrency method
- 
 */
 
 const typedef enum {
@@ -65,14 +64,28 @@ const typedef enum {
     USD, EUR, JPY, CAD, GBP, CHF, RUB, AUD
 } Currency;
 
-#define MAXCURRENCIES                    8
+#define CURRENCIES                    8
 
-Currency* currencies[EXCHANGECOUNT][MAXCURRENCIES] = {
+BOOL* kCurrencies[EXCHANGECOUNT][CURRENCIES] = {
     { //MTGOX
-        USD, EUR, JPY, CAD, GBP, CHF, RUB, AUD
+        true, //USD
+        true, //EUR
+        true, //JPY
+        true, //CAD
+        true, //GBP
+        true, //CHF
+        true, //RUB
+        true  //AUD
     },
     { //BTCentral
-        EUR
+        false, //USD
+        true, //EUR
+        false, //JPY
+        false, //CAD
+        false, //GBP
+        false, //CHF
+        false, //RUB
+        false  //AUD
     }
 };
 
@@ -95,11 +108,13 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     
     NSInteger _displayItem;
     NSInteger _displayDecimals;
+    NSInteger _displayExchange;
     DKGLabelType _displayLabelType;
     double _displayFontSize;
     
     IBOutlet NSMenu* _updateSubmenu;
     IBOutlet NSMenu* _decimalsSubmenu;
+    IBOutlet NSMenu* _exchangeSubmenu;
     IBOutlet NSMenu* _labelSubmenu;
     IBOutlet NSMenu* _currencySubmenu;
     IBOutlet NSMenu* _fontSizeSubmenu;
@@ -112,17 +127,22 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
 }
 
 -(void)awakeFromNib{
+    
     _statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
     [_statusItem setMenu:_statusMenu];
     [_statusItem setTitle:@"..."];
     [_statusItem setHighlightMode:YES];
-    
+    [_currencySubmenu setAutoenablesItems:NO]; //required to be able to enable/disable currencies
     _statusMenu.delegate = self;
     
     for (int i = 0; i < 8; i++) {
         [_statusMenu itemAtIndex:i].action = @selector(changeDisplay:);
     }
 
+    for (int i = 0; i < _exchangeSubmenu.itemArray.count; i++) {
+        [_exchangeSubmenu itemAtIndex:i].action = @selector(changeExchange:);
+    }
+    
     for (int i = 0; i < _currencySubmenu.itemArray.count; i++) {
         [_currencySubmenu itemAtIndex:i].action = @selector(changeCurrency:);
     }
@@ -151,6 +171,10 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:kDefaultsCurrency];
     }
     
+    if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsExchange]) {
+        [[NSUserDefaults standardUserDefaults] setInteger:0 forKey:kDefaultsExchange];
+    }
+    
     if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsUpdateTime]) {
         [[NSUserDefaults standardUserDefaults] setInteger:1 forKey:kDefaultsUpdateTime];
     }
@@ -169,6 +193,10 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     }
     
     [self changeCurrency:[_currencySubmenu itemAtIndex:MAX(0, MIN([[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency], _currencySubmenu.itemArray.count - 1))]];
+    
+    NSLog(@"Initing at exchange: %ld", [[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsExchange]);
+    
+    [self changeExchange:[_exchangeSubmenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsExchange]]];
     
     [self changeDisplay:[_statusMenu itemAtIndex:[[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsDisplay]]];
     
@@ -201,21 +229,24 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
 
 - (NSString*) getURLByCurrency:(NSString *)currency
 {
-    switch (EXCHANGE) {
+    switch (_displayExchange) {
         case BTCentral :
             return [NSString stringWithFormat:@"https://bitcoin-central.net/api/v1/ticker/%@", currency];
+        //Room for more exchanges here
         case MTGox :
+        default :
             return [NSString stringWithFormat:@"https://mtgox.com/api/1/BTC%@/ticker", currency];
     }
-    //Room for more exchanges here
 }
 
 - (NSString *) parseData:(NSDictionary*)json byKey:(NSString*)key
 {
-    switch (EXCHANGE) {
+    switch (_displayExchange) {
         case BTCentral :
             return [json[key] stringValue];
+        //Room for more exchanges here
         case MTGox :
+        default:
             return json[@"return"][key][@"value"];
     }
 }
@@ -228,11 +259,11 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     
     NSDictionary* json = [NSJSONSerialization JSONObjectWithData:data options:nil error:&error];
     
-    for (int i = 0; i < kKeyNamesCount[EXCHANGE]; i++)
+    for (int i = 0; i < kKeyNamesCount[_displayExchange]; i++)
     {
         NSString* label = nil;
-        NSString* key = kKeyNames[EXCHANGE][i][0];
-        NSString* keyName = kKeyNames[EXCHANGE][i][1];
+        NSString* key = kKeyNames[_displayExchange][i][0];
+        NSString* keyName = kKeyNames[_displayExchange][i][1];
         
         switch (_displayLabelType)
         {
@@ -285,14 +316,19 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
 
 - (void) changeCurrency:(NSMenuItem*)sender
 {
-    NSLog(@"Currency: %@", [sender title]);
-    for (int i = 0; i < _currencySubmenu.itemArray.count; i++) {
-        [_currencySubmenu itemAtIndex:i].state = NSOffState;
+    if (kCurrencies[_displayExchange][[_currencySubmenu.itemArray indexOfObject:sender]]) {
+        NSLog(@"Currency: %@", [sender title]);
+        for (int i = 0; i < _currencySubmenu.itemArray.count; i++) {
+            [_currencySubmenu itemAtIndex:i].state = NSOffState;
+        }
+        [sender setState:NSOnState];
+        
+        [[NSUserDefaults standardUserDefaults] setInteger:[_currencySubmenu.itemArray indexOfObject:sender] forKey:kDefaultsCurrency];
+        [self update];
     }
-    [sender setState:NSOnState];
-    
-    [[NSUserDefaults standardUserDefaults] setInteger:[_currencySubmenu.itemArray indexOfObject:sender] forKey:kDefaultsCurrency];
-    [self update];
+    else {
+        NSLog(@"Invalid currency for this exchange! %@ %@", [[_exchangeSubmenu.itemArray objectAtIndex:_displayExchange] title], [sender title]);
+    }
 }
 
 - (IBAction)bootup:(id)sender {
@@ -388,6 +424,55 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     _displayDecimals = [_decimalsSubmenu.itemArray indexOfObject:sender];
     
     [self update];
+}
+
+- (void)changeExchange:(id)sender {
+    for (int i = 0; i < _exchangeSubmenu.itemArray.count; i++) {
+        [_exchangeSubmenu itemAtIndex:i].state = NSOffState;
+    }
+    [sender setState:NSOnState];
+    
+    [[NSUserDefaults standardUserDefaults] setInteger:[_exchangeSubmenu.itemArray indexOfObject:sender] forKey:kDefaultsExchange];
+    
+    _displayExchange = [_exchangeSubmenu.itemArray indexOfObject:sender];
+    
+    [self validateCurrencies];
+    [self update];
+}
+
+//enables only the currencies that the exchange supports
+//falls back to first supported currency when selected currency is not supported
+- (void)validateCurrencies {
+    for (int i = 0; i < _currencySubmenu.itemArray.count; i++) {
+        [[_currencySubmenu itemAtIndex:i] setEnabled:kCurrencies[_displayExchange][i]];
+    }
+    NSInteger cIndex = [[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency];
+    cIndex = MAX(0, MIN(cIndex, _currencySubmenu.itemArray.count - 1));
+    if (!kCurrencies[_displayExchange][cIndex]) {
+        for (int i = 0; i < _currencySubmenu.itemArray.count; i++) {
+            if (kCurrencies[_displayExchange][i]) {
+                [self changeCurrency:[_currencySubmenu itemAtIndex:i]];
+                
+                NSString* alertTitle = [NSString stringWithFormat:@"%@ does not support %@",
+                                       [[_exchangeSubmenu itemAtIndex:_displayExchange] title],
+                                       [[_currencySubmenu itemAtIndex:cIndex] title]];
+
+                
+                NSString* alertText = [NSString stringWithFormat:@"The selected exchange (%@) does not support the selected currency (%@). Falling back to %@.",
+                                       [[_exchangeSubmenu itemAtIndex:_displayExchange] title],
+                                       [[_currencySubmenu itemAtIndex:cIndex] title],
+                                       [[_currencySubmenu itemAtIndex:i] title]];
+                
+                NSAlert *alert = [NSAlert alertWithMessageText:alertTitle
+                                                 defaultButton:@"OK" alternateButton:nil
+                                                   otherButton:nil
+                                     informativeTextWithFormat:@"%@", alertText];
+                [alert runModal];
+                
+                break;
+            }
+        }
+    }
 }
 
 - (void)changeDisplayLabel:(id)sender {
