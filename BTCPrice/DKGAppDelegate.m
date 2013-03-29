@@ -20,24 +20,29 @@
 
 /* To add support for an exchange, update:
  - the Exchange enum
+ - the EXCHANGECOUNT constant
  - the kKeyNamesCount array
  - the kKeyNames array
  - the currencies array
  - getURLByCurrency method
+ - parseData method
+ - the .xib menu
 */
 
 const typedef enum {
     MTGox,
+    BitStamp,
     BTCentral
 } Exchange;
 
-#define EXCHANGECOUNT               2
+#define EXCHANGECOUNT               3
 
-int kKeyNamesCount[EXCHANGECOUNT] = {8, 8};
+int kKeyNamesCount[EXCHANGECOUNT] = {8, 8, 8};
 
 #define MAXCOUNT                    8
 
 // Each subarray is of the format { JSON key, Print name }
+// use a NULL key to gracefully indicate a value is missing
 NSString* kKeyNames[EXCHANGECOUNT][MAXCOUNT][2] = {
     { //MTGOX
         { @"high",  @"High" },
@@ -48,6 +53,16 @@ NSString* kKeyNames[EXCHANGECOUNT][MAXCOUNT][2] = {
         { @"last",  @"Last" },
         { @"buy",   @"Buy"  },
         { @"sell",  @"Sell" }
+    },
+    { //Bitstamp
+        { @"high",  @"High" },
+        { @"low",   @"Low"  },
+        { @"NULL",   @"Avg"  },
+        { @"NULL",  @"VWAP" },
+        { @"volume",   @"Vol"  },
+        { @"last",  @"Last" },
+        { @"bid",   @"Bid"  },
+        { @"ask",  @"Ask" }
     },
     { //BTCentral
         { @"high",  @"High" },
@@ -77,6 +92,16 @@ BOOL* kCurrencies[EXCHANGECOUNT][CURRENCIES] = {
         true, //CHF
         true, //RUB
         true  //AUD
+    },
+    { //BitStamp
+        true, //USD
+        false, //EUR
+        false, //JPY
+        false, //CAD
+        false, //GBP
+        false, //CHF
+        false, //RUB
+        false  //AUD
     },
     { //BTCentral
         false, //USD
@@ -243,6 +268,8 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     switch (_displayExchange) {
         case BTCentral :
             return [NSString stringWithFormat:@"https://bitcoin-central.net/api/v1/ticker/%@", currency];
+        case BitStamp:
+            return [NSString stringWithFormat:@"https://www.bitstamp.net/api/ticker/"];
         //Room for more exchanges here
         case MTGox :
         default :
@@ -255,6 +282,8 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     switch (_displayExchange) {
         case BTCentral :
             return [json[key] stringValue];
+        case BitStamp:
+            return json[key];
         //Room for more exchanges here
         case MTGox :
         default:
@@ -273,6 +302,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     for (int i = 0; i < kKeyNamesCount[_displayExchange]; i++)
     {
         NSString* label = nil;
+        NSString* valueString = nil;
         NSString* key = kKeyNames[_displayExchange][i][0];
         NSString* keyName = kKeyNames[_displayExchange][i][1];
         
@@ -289,22 +319,24 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
                 break;
         }
         
-        NSString* valueString = [self parseData:json byKey: key];
-        
-        NSLog(@"Displaying trailing zeros: %d", _trailingZeros);
-        
-
-        // Decimals
-        double valueDouble = [valueString doubleValue];
-        valueString = [NSString stringWithFormat:[NSString stringWithFormat:@"%%.%ldf", _displayDecimals], valueDouble];
-        if (!_trailingZeros) {
-            int index = (int)[valueString length] - 1;
-            while ([valueString characterAtIndex:index] == '0' && index > 0) {
-                index--;
+        if ([key isEqualToString:@"NULL"]) {
+            valueString = @"-";
+        }
+        else {
+            valueString = [self parseData:json byKey: key];
+            
+            // Decimals
+            double valueDouble = [valueString doubleValue];
+            valueString = [NSString stringWithFormat:[NSString stringWithFormat:@"%%.%ldf", _displayDecimals], valueDouble];
+            if (!_trailingZeros) {
+                int index = (int)[valueString length] - 1;
+                while ([valueString characterAtIndex:index] == '0' && index > 0) {
+                    index--;
+                }
+                if ([valueString characterAtIndex:index] == '.')
+                    index--;
+                valueString = [valueString substringToIndex: index +1];
             }
-            if ([valueString characterAtIndex:index] == '.')
-                index--;
-            valueString = [valueString substringToIndex: index +1];
         }
         
         [[_statusMenu itemAtIndex:i] setTitle:[NSString stringWithFormat:@"%@:  \t%@", keyName, valueString]];
