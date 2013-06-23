@@ -33,10 +33,11 @@ const typedef enum {
     BitStamp,
     BTCentral,
     Bitcoin24,
-    BTCe
+    BTCe,
+    BTCeLTC
 } Exchange;
 
-#define EXCHANGECOUNT               5
+#define EXCHANGECOUNT               6
 #define KEYCOUNT                    8
 
 // Each subarray is of the format { JSON key, Print name }
@@ -83,6 +84,16 @@ NSString* kKeyNames[EXCHANGECOUNT][KEYCOUNT][2] = {
         { @"ask",       @"Ask"  }
     },
     { //BTC-e
+        { @"high",      @"High" },
+        { @"low",       @"Low"  },
+        { @"avg",       @"Avg"  },
+        { @"NULL",      @"Var"  },
+        { @"vol_cur",   @"Vol"  },
+        { @"last",      @"Last" },
+        { @"buy",       @"Buy"  },
+        { @"sell",      @"Sell" }
+    },
+    { //BTCeLTC
         { @"high",      @"High" },
         { @"low",       @"Low"  },
         { @"avg",       @"Avg"  },
@@ -143,6 +154,16 @@ BOOL* kCurrencies[EXCHANGECOUNT][CURRENCIES] = {
         false  //AUD
     },
     { //BTC-e
+        true, //USD
+        true, //EUR
+        false, //JPY
+        false, //CAD
+        false, //GBP
+        false, //CHF
+        false, //RUB
+        false  //AUD
+    },
+    { //BTCeLTC
         true, //USD
         true, //EUR
         false, //JPY
@@ -313,6 +334,8 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
             return [NSString stringWithFormat:@"https://bitcoin-24.com/api/%@/ticker.json", currency];
         case BTCe:
             return [NSString stringWithFormat:@"https://btc-e.com/api/2/btc_%@/ticker",[currency lowercaseString]];
+        case BTCeLTC:
+            return [NSString stringWithFormat:@"https://btc-e.com/api/2/ltc_%@/ticker",[currency lowercaseString]];
         //Room for more exchanges here
         case MTGox :
         default :
@@ -329,6 +352,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
         case Bitcoin24:
             return json[key];
         case BTCe:
+        case BTCeLTC:
             return [json[@"ticker"][key] stringValue];
         //Room for more exchanges here
         case MTGox :
