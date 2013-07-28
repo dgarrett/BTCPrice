@@ -8,6 +8,7 @@
 
 #import "DKGAppDelegate.h"
 
+#define kTickerApi                  @"https://data.mtgox.com/api/1/BTC%@/ticker"
 #define kDonationAddress            @"1Price4EGW8R59auccATvEwCFAhXYBML6V"
 #define kDefaultsDisplay            @"display"
 #define kDefaultsCurrency           @"currency"
@@ -142,7 +143,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     NSInteger i = [[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency];
     i = MAX(0, MIN(i, _currencySubmenu.itemArray.count - 1));
     currency = [[_currencySubmenu itemAtIndex:i] title];
-    NSURL* URL = [NSURL URLWithString:[NSString stringWithFormat:@"https://mtgox.com/api/1/BTC%@/ticker", currency]];
+    NSURL* URL = [NSURL URLWithString:[NSString stringWithFormat:kTickerApi, currency]];
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         NSData* data = [NSData dataWithContentsOfURL:URL];
         dispatch_async(dispatch_get_main_queue(), ^{
