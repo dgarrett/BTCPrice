@@ -1671,7 +1671,7 @@
 								</object>
 								<object class="NSMenuItem" id="549774226">
 									<reference key="NSMenu" ref="1039290085"/>
-									<string key="NSTitle">14pt (Default)</string>
+									<string key="NSTitle">13pt (Default)</string>
 									<string key="NSKeyEquiv"/>
 									<int key="NSMnemonicLoc">2147483647</int>
 									<reference key="NSOnImage" ref="35465992"/>
