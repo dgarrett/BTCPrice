@@ -280,7 +280,7 @@ typedef NS_ENUM(NSInteger, DKGLabelType) {
     
     if (nil == [[NSUserDefaults standardUserDefaults] objectForKey:kDefaultsFontSize]
         || nil == [_fontSizeSubmenu itemWithTitle:[[NSUserDefaults standardUserDefaults] stringForKey:kDefaultsFontSize]]) {
-        [[NSUserDefaults standardUserDefaults] setObject:@"14pt (Default)" forKey:kDefaultsFontSize];
+        [[NSUserDefaults standardUserDefaults] setObject:@"13pt (Default)" forKey:kDefaultsFontSize];
     }
     
     [self changeCurrency:[_currencySubmenu itemAtIndex:MAX(0, MIN([[NSUserDefaults standardUserDefaults] integerForKey:kDefaultsCurrency], _currencySubmenu.itemArray.count - 1))]];
